@@ -1,6 +1,6 @@
-import { createProjectSchema, projectIdSchema } from "../validation/project-validation.js"
+import { createProjectSchema } from "../validation/project-validation.js"
 import { workspaceIdSchema } from "../validation/workspace-validation.js";
-import { createProjectService ,getAllProjectsInWorkspaceService,getProjectByIdAndWorkspaceIdService,getProjectAnalyticsService} from "../services/project-service.js";
+import { createProjectService ,getAllProjectsInWorkspaceService} from "../services/project-service.js";
 import { getMemberRoleInWorkspaceService } from "../services/member-services.js";
 import { Permissions } from "../enum/role-enum.js";
 import { roleGuard } from "../utils/roleGuard.js";
@@ -39,29 +39,4 @@ export const getAllProjectsInWorkspaceController=async(req,res)=>{
             limit:pageSize
         }
     });
-}
-
-export const getProjectByIdAndWorkspaceIdController=async(req,res)=>{
-    const projectId=projectIdSchema.parse(req.params.id);
-    const workspaceId=workspaceIdSchema.parse(req.params.workspaceId);
-    const userId=req.user?._id;
-    const {rolename}=await getMemberRoleInWorkspaceService(userId,workspaceId);
-    roleGuard(rolename,[Permissions.VIEW_ONLY]);
-
-    const {project}=await getProjectByIdAndWorkspaceIdService(workspaceId,projectId);
-    return res.status(200).json({message:"Project retrieved successfully",project});
-
-}
-
-export const getProjectAnalyticsController=async(req,res)=>{
-    const projectId=projectIdSchema.parse(req.params.id);
-    const workspaceId=workspaceIdSchema.parse(req.params.workspaceId);
-    const userId=req.user?._id;
-    const {rolename}=await getMemberRoleInWorkspaceService(userId,workspaceId)
-    roleGuard(rolename,[Permissions.VIEW_ONLY])
-
-    const {analytics}=await getProjectAnalyticsService(workspaceId,projectId); 
-
-
-    return res.status(200).json({message:"Project analytics retrieved successfully",analytics})
 }
