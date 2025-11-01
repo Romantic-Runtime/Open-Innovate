@@ -48,30 +48,38 @@ passport.use(new LocalStrategy({
 passport.use(new GoogleStrategy.Strategy({
     clientID:process.env.GOOGLE_CLIENT_ID,
     clientSecret:process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL:process.env.GOOGLE_CALLBACK_URL,
+    // Use the backend callback URL (where Google should POST the auth code)
+    callbackURL: process.env.GOOGLE_CALLBACK_URL,
     scope:['profile','email'],
     passReqToCallback:true
 },async(req,accessToken,refreshToken,profile,done)=>{
     try {
-        const {email,sub:googleId,picture}=profile._json;
-        console.log("Profile:", profile); 
-        console.log("GoogleId",googleId)
-        if(!googleId){
-            throw new Error("Google ID not found in profile");
-        }
-        const {user}=await loginOrRegisterUser({
-            provider:ProviderEnums.GOOGLE,
-            displayName:profile.displayName,
-            providerId:googleId,
-            picture:picture,
-            email:email,
-            accessToken:accessToken,
-            refreshToken:refreshToken
-        })
-        done(null,user);
+        // Defensive parsing — passport-google-oauth2 can return profile fields
+        // either on profile (profile.id, profile.emails, profile.photos) or in profile._json
+        const googleId = profile?.id || profile?._json?.sub;
+        const email = (profile?.emails && profile.emails[0] && profile.emails[0].value) || profile?._json?.email;
+        const picture = (profile?.photos && profile.photos[0] && profile.photos[0].value) || profile?._json?.picture;
 
+        console.log('Google profile raw:', profile);
+        console.log('Resolved googleId:', googleId, 'email:', email);
+
+        if (!googleId) {
+            throw new Error('Google ID not found in profile');
+        }
+
+        const { user } = await loginOrRegisterUser({
+            provider: ProviderEnums.GOOGLE,
+            displayName: profile.displayName,
+            providerId: googleId,
+            picture: picture,
+            email: email,
+            accessToken: accessToken,
+            refreshToken: refreshToken
+        });
+
+        done(null, user);
     } catch (error) {
-        console.error("Error in Google Strategy:", error);
+        console.error('Error in Google Strategy:', error);
         done(error, null);
     }
 }
